@@ -1,33 +1,87 @@
 <script setup lang="ts">
-defineProps({
+import { useStore } from '~/store'
+
+/* const props = */ defineProps({
   filter: {
     type: Boolean,
     default: false
   }
 })
 
-const route = useRoute()
+const store = useStore()
+
+// const route = useRoute()
 </script>
 
 <template>
-  <div
-    :class="[route.path === '/' ? 'bottom-8' : 'bottom-16', filter ? 'h-auto rounded-md p-8' : 'h-[60px]']"
-    class="justify-center flex flex-col inset-x-0 mx-auto fixed w-[80%] sm:w-[60%] md:w-[50%] lg:w-[40%] 2xl:w-[30%] z-[9999] bg-gray-900 rounded-full after:rounded-full border border-1 border-white/30"
-  >
-    <slot name="filter" />
+  <div class="fixed z-[9999] justify-center flex items-center bottom-3 gap-2">
+    <slot name="prepend" />
     <div
-      class="flex justify-between items-center h-full z-50"
-      :class="filter ? 'pt-6' : 'pl-6 pr-3'"
+      :class="[filter ? 'h-auto rounded-md p-8' : 'h-[60px]', store.maximizedMenu ? 'menu-maximized' : 'w-[60px] overflow-hidden']"
+      class="justify-center flex flex-col mx-auto transition-all duration-500 rounded-full after:rounded-full"
+      :style="{ backgroundColor: store.maximizedMenu ? 'var(--light-base2-color)' : 'transparent', border: store.maximizedMenu ? '1px solid var(--light-low-cnst-color)' : 'none', color: 'var(--light-hi-cnst-color)' }"
     >
-      <slot name="logo" />
+      <slot name="filter" />
       <div
-        class="text-white text-sm text-center"
-        :class="{ 'px-2': !filter }"
+        class="flex justify-between items-center h-full z-50"
+        :class="filter ? 'pt-6' : 'pr-4'"
+        style="padding-left: 8px;"
       >
-        <slot name="description" />
+        <div
+          class="text-sm text-center pr-3 cursor-pointer hover:text-gray-200 transition-hover duration-200 transition-colors"
+          :class="{ 'px-2': !filter }"
+          @click="store.toggleMaximizedMenu()"
+        >
+          <svg
+            v-if="!store.maximizedMenu"
+            width="24"
+            height="24"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            className="size-6"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              stroke-width="2.0"
+              d="M3.75 5.25h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5m-16.5 4.5h16.5"
+            />
+          </svg>
+          <svg
+            v-else
+            width="24"
+            height="24"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke-width="1.5"
+            stroke="currentColor"
+            class="size-6"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M6 18 18 6M6 6l12 12"
+            />
+          </svg>
+        </div>
+        <div
+          class="flex gap-2 transition-all duration-500 items-center justify-center"
+          :class="store.maximizedMenu ? 'opacity-100' : 'opacity-0'"
+        >
+          <slot name="description" />
+          <slot name="buttons" />
+        </div>
       </div>
-
-      <slot name="buttons" />
     </div>
+    <slot name="append" />
   </div>
 </template>
+
+<style scoped>
+.menu-maximized {
+  width: 400px;
+}
+</style>

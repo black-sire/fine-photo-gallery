@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { useStore } from '~/store'
+import type { GalImage } from '~~/types'
+
 const isOpen = ref(false)
 
 const dropZoneRef = ref<HTMLElement>()
@@ -12,13 +15,24 @@ const toast = useToast()
 const { uploadImage, deleteImage, images } = useFile()
 const { loggedIn, clear } = useUserSession()
 
-const active = useState()
+const store = useStore()
+const { active } = useImageGallery()
+const route = useRoute()
 
 const { isOverDropZone } = useDropZone(dropZoneRef, onDrop)
 
 function openFilePicker() {
   fileInput.value?.click()
 }
+
+const albumId = computed(() => (route.params.slug as string[]).join('/') || 'common')
+
+const imageTargetSize = ref(300)
+const imageMaxSize = ref(400)
+
+const imageScale = (image: GalImage) => Math.sqrt(image.aspectRatio)
+const imageHPad = ref(40)
+const imageVPad = ref(50)
 
 async function fileSelection(event: Event) {
   const target = event.target as HTMLInputElement
@@ -38,15 +52,15 @@ async function uploadFile(file: File) {
   uploadingImg.value = true
 
   await uploadImage(file)
-    .catch(() => toast.add({ title: 'An error occured', description: 'Please try again', color: 'red' }))
+    .catch(() => toast.add({ title: 'An error occured', description: 'Please try again', color: 'warning' }))
     .finally(() => uploadingImg.value = false)
 }
 
-async function deleteFile(pathname: string) {
-  deletingImg.value = pathname
+async function deleteFile(id: string) {
+  deletingImg.value = id
 
-  await deleteImage(pathname)
-    .catch(() => toast.add({ title: 'An error occured', description: 'Please try again', color: 'red' }))
+  await deleteImage(id)
+    .catch(() => toast.add({ title: 'An error occured', description: 'Please try again', color: 'warning' }))
     .finally(() => deletingImg.value = '')
 }
 
@@ -55,79 +69,91 @@ async function clearSession() {
 
   await clear().finally(() => disconnect.value = false)
 }
+
+onMounted(async () => {
+  dropZoneRef.value?.scrollTo({ top: store.galeryScrollPos })
+  setTimeout(() => {
+    dropZoneRef.value?.scrollTo({ top: store.galeryScrollPos })
+  }, 50)
+})
 </script>
 
 <template>
-  <div>
-    <section
-      v-if="images"
-      ref="dropZoneRef"
-      class="relative h-screen gap-[22px] p-4"
+  <section
+    v-if="images"
+    ref="dropZoneRef"
+    class="relative h-screen gap-[22px] overflow-auto"
+    @scroll="store.galeryScrollPos = ($event.target as HTMLElement).scrollTop"
+  >
+    <BottomMenu
+      class="bottom-menu"
     >
-      <UModal
-        v-model="isOpen"
-        class="flex items-center justify-center relative"
-        side="left"
-      >
-        <LoginForm
-          class="z-50 bg-gray-800 rounded-md"
-          @close="isOpen = false"
-        />
-      </UModal>
-
-      <BottomMenu class="bottom-menu">
-        <template #logo>
-          <img
-            src="/logo.svg"
-            width="29"
-            height="20"
-          >
-        </template>
-        <template #description>
-          <div class="flex gap-x-4 items-center">
-            <p class="bottom-menu-description text-sm sm:text-base leading-tight sm:leading-normal">
-              Media Gallery template
-            </p>
-            <NuxtLink
-              to="https://github.com/Flosciante/nuxt-image-gallery"
-              target="blank"
-              class="flex items-center"
-            >
-              <UIcon
-                name="i-simple-icons-github"
-                class="w-5 h-5"
-              />
-            </NuxtLink>
-          </div>
-        </template>
-        <template #buttons>
-          <div class="flex gap-x-2">
+      <template #description />
+      <template #buttons>
+        <div class="flex gap-x-2">
+          <UButton
+            v-if="loggedIn"
+            :loading="disconnect"
+            icon="i-heroicons-power-20-solid"
+            color="warning"
+            variant="ghost"
+            @click="clearSession"
+          />
+          <UModal v-else>
             <UButton
-              v-if="loggedIn"
-              :loading="disconnect"
-              icon="i-heroicons-power-20-solid"
-              color="red"
-              variant="ghost"
-              @click="clearSession"
-            />
-            <UButton
-              v-else
               label="Sign in"
-              color="green"
+              color="neutral"
               variant="ghost"
               aria-label="Sign in"
               class="mr-4 sm:mr-0"
               @click="isOpen = true"
             />
-          </div>
-        </template>
-      </BottomMenu>
+            <template #content>
+              <LoginForm class="z-50 bg-gray-800 rounded-md" />
+            </template>
+          </UModal>
+        </div>
+      </template>
+    </BottomMenu>
 
-      <div
-        class="w-full"
-        :class="{ 'masonry-container': images && images.length }"
+    <div
+      class="w-full"
+      :class="{ 'masonry-container': images && images.length }"
+    >
+      <ul
+        class="flex flex-row flex-wrap align-start"
       >
-        <div v-if="loggedIn">
+        <li
+          v-for="image in images"
+          ref="mansoryItem"
+          :key="image.id"
+          class="relative group masonry-item flex-auto flex items-center justify-center"
+        >
+          <UButton
+            v-if="loggedIn"
+            :loading="deletingImg === image.id"
+            color="neutral"
+            icon="i-heroicons-trash-20-solid"
+            style="top: calc(100% - var(--image-v-pad) + 10px); right: calc(50% - 16px); color: #A44"
+            class="absolute z-[9999] opacity-0 group-hover:opacity-100"
+            @click="deleteFile(image.id)"
+          />
+          <NuxtLink
+            :to="`/detail/${image.id}`"
+            @click="active = image.id"
+          >
+            <img
+              v-if="image"
+              :src="`/images/${image.pathname_thumb}`"
+              class="h-auto w-full rounded-md transition-all duration-200 will-change-[filter] object-contain"
+              :style="`view-transition-name: ${image.id};min-width: ${imageTargetSize*imageScale(image)}px;min-height: ${imageTargetSize*imageScale(image)/image.aspectRatio}px;`"
+            >
+          </NuxtLink>
+        </li>
+        <li
+          v-if="loggedIn"
+          style="max-height: var(--image-max-height); min-width: var(--image-max-height);flex:10000000;"
+        >
           <input
             ref="fileInput"
             class="hidden"
@@ -142,113 +168,80 @@ async function clearSession() {
             :is-over-drop-zone="isOverDropZone"
             @click="openFilePicker"
           />
-        </div>
-        <div
-          v-else
-          class="text-2xl text-white flex flex-col gap-y-4 items-center justify-center h-full w-full pb-8"
-        >
-          <h1 class="font-medium text-5xl">
-            Welcome to image gallery
-          </h1>
-          <p class="text-gray-400">
-            You must be logged in to start uploading images
-          </p>
-        </div>
-
-        <ul
-          v-if="images && images.length"
-          class="grid grid-cols-1 gap-4 lg:block"
-        >
-          <li
-            v-for="image in images"
-            ref="mansoryItem"
-            :key="image.pathname"
-            class="relative w-full group masonry-item"
-          >
-            <UButton
-              v-if="loggedIn"
-              :loading="deletingImg === image.pathname"
-              color="white"
-              icon="i-heroicons-trash-20-solid"
-              class="absolute top-4 right-4 z-[9999] opacity-0 group-hover:opacity-100"
-              @click="deleteFile(image.pathname)"
-            />
-            <NuxtLink
-              :to="`/detail/${image.pathname.split('.')[0]}`"
-              @click="active = image.pathname.split('.')[0]"
-            >
-              <img
-                v-if="image"
-                width="527"
-                height="430"
-                :src="`/images/${image.pathname}`"
-                :class="{ imageEl: image.pathname.split('.')[0] === active }"
-                class="h-auto w-full max-h-[430px] rounded-md transition-all duration-200 border-image brightness-[.8] hover:brightness-100 will-change-[filter] object-cover"
-              >
-            </NuxtLink>
-          </li>
-        </ul>
-      </div>
-    </section>
-    <div
-      v-else
-      class="flex items-center space-x-4 z-10"
-    >
-      <USkeleton
-        class="h-12 w-12 bg-primary-500"
-        :ui="{ rounded: 'rounded-full' }"
-      />
-      <div class="space-y-2">
-        <USkeleton class="h-4 w-[250px] bg-primary-500" />
-        <USkeleton class="h-4 w-[200px] bg-primary-500" />
-      </div>
+        </li>
+      </ul>
+    </div>
+  </section>
+  <div
+    v-else
+    class="flex items-center space-x-4 z-10"
+  >
+    <USkeleton
+      class="h-12 w-12 bg-primary-500"
+      :ui="{ rounded: 'rounded-full' }"
+    />
+    <div class="space-y-2">
+      <USkeleton class="h-4 w-[250px] bg-primary-500" />
+      <USkeleton class="h-4 w-[200px] bg-primary-500" />
     </div>
   </div>
 </template>
 
 <style scoped lang="postcss">
-@media (min-width: 768px) {
   .imageEl {
-    view-transition-name: vtn-image;
+
   }
 
-  .bottom-menu-description {
-    view-transition-name: vtn-bottom-menu-description;
-  }
-
-  .bottom-menu-button {
-    view-transition-name: vtn-bottom-menu-button;
-  }
-
-  .container-image {
+  @media (min-width: 768px) {
+    .container-image {
     background-color: rgba(255, 255, 255, 0.1)
   }
   .container-image:hover {
     background-color: transparent;
   }
-
-  .border-image {
-    border-width: 1.15px;
-    border-color: rgba(255, 255, 255, 0.1)
-  }
 }
 
-@media screen and (min-width: 1024px) {
+.masonry-container {
+  --image-max-height: v-bind(imageMaxSize + 'px');
+  --image-max-width: v-bind(imageMaxSize + 'px');
+  --image-h-pad: v-bind(imageHPad + 'px');
+  --image-v-pad: v-bind(imageVPad + 'px');
+  ul {
+    /*
+    column-gap: calc(max(2em, 5vw));
+    row-gap: calc(max(4em, 10vh));
+    */
+    li{
+      min-height: calc(var(--image-max-height) + var(--image-v-pad) * 2);
+      min-width: calc(var(--image-max-width) + var(--image-h-pad) * 2);
+      padding-top: var(--image-v-pad);
+      padding-bottom: var(--image-v-pad);
+      padding-left: var(--image-h-pad);
+      padding-right: var(--image-h-pad);
+
+      img{
+        object-fit: contain;
+      }
+    }
+  }
+}
+@media screen and (max-width: 1024px) {
   .masonry-container {
-    column-count: 3;
-    column-gap: 20px;
     column-fill: balance;
-    margin: 20px auto 0;
-    padding: 2rem;
+    ul{
+      li{
+        padding-top: 4em;
+        padding-bottom: 4em;
+        padding-left: 0.5em;
+        padding-right: 0.5em;
+      }
+    }
   }
 
   .masonry-item, .upload {
-    display: inline-block;
-    margin: 0 0 20px;
     -webkit-column-break-inside: avoid;
     page-break-inside: avoid;
     break-inside: avoid;
-    width: 100%;
   }
 }
 </style>

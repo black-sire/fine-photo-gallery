@@ -1,6 +1,6 @@
 import type { UseSwipeDirection } from '@vueuse/core'
 import type { BlobObject } from '@nuxthub/core'
-import type { FilePlugin } from '../../types'
+import type { FilePlugin, GalImage } from '../../types'
 
 export function useImageGallery() {
   const nuxtApp = useNuxtApp()
@@ -8,12 +8,13 @@ export function useImageGallery() {
   const imageToDownload = ref<HTMLImageElement>()
   const router = useRouter()
   const route = useRoute()
+  const active = useState()
 
   const file = nuxtApp.$file as FilePlugin
 
-  const currentIndex: ComputedRef<number> = computed(() => file.images.value!.findIndex((image: BlobObject) => image.pathname.split('.')[0] === route.params.slug![0]))
-  const isFirstImg: ComputedRef<boolean> = computed(() => file.images.value?.[0]?.pathname.split('.')[0] === route.params.slug![0] || false)
-  const isLastImg: ComputedRef<boolean> = computed(() => file.images.value?.[file.images.value.length - 1]?.pathname.split('.')[0] === route.params.slug![0] || false)
+  const currentIndex: ComputedRef<number> = computed(() => file.images.value!.findIndex((image: GalImage) => image.id === route.params.slug?.join('/')))
+  const isFirstImg: ComputedRef<boolean> = computed(() => file.images.value?.[0]?.id === route.params.slug?.join('/') || false)
+  const isLastImg: ComputedRef<boolean> = computed(() => file.images.value?.[file.images.value.length - 1]?.id === route.params.slug?.join('/') || false)
 
   const initSwipe = (el: Ref<HTMLImageElement | undefined>) => {
     useSwipe(el, {
@@ -24,13 +25,13 @@ export function useImageGallery() {
           if (isLastImg.value)
             router.push('/')
           else
-            router.push(`/detail/${file.images.value![currentIndex.value + 1]?.pathname.split('.')[0]}`)
+            router.push(`/detail/${file.images.value![currentIndex.value + 1]?.id}`)
         }
         else {
           if (isFirstImg.value)
             router.push('/')
           else
-            router.push(`/detail/${file.images.value![currentIndex.value - 1]?.pathname.split('.')[0]}`)
+            router.push(`/detail/${file.images.value![currentIndex.value - 1]?.id}`)
         }
       }
     })
@@ -87,36 +88,36 @@ export function useImageGallery() {
     return convertedFile as File
   }
 
-  const magnifierImage = (e: MouseEvent, containerEl: HTMLElement, imageEl: HTMLImageElement, magnifierEl: HTMLElement, zoomFactor: number = 2) => {
+  const magnifierImage = (e: MouseEvent, containerEl: HTMLElement, imageEl: HTMLImageElement, magnifierEl: HTMLElement, zoomFactor: number = 2, loupeSize: number = 200) => {
     if (magnifierEl.style.filter !== imageEl.style.filter)
       magnifierEl.style.filter = imageEl.style.filter
 
     const imageRect = imageEl.getBoundingClientRect()
     const containerRect = containerEl.getBoundingClientRect()
 
-    const x = e.pageX - containerRect.left
-    const y = e.pageY - containerRect.top
+    const x = e.pageX - imageRect.left
+    const y = e.pageY - imageRect.top
 
     const imgWidth = imageRect.width
     const imgHeight = imageRect.height
 
-    const zoomedWidth = imgWidth * (zoomFactor === 1 ? 1.5 : zoomFactor)
-    const zoomedHeight = imgHeight * (zoomFactor === 1 ? 1.5 : zoomFactor)
+    const zoomedWidth = imgWidth * zoomFactor
+    const zoomedHeight = imgHeight * zoomFactor
 
     let xperc = (x / imgWidth) * 100
     let yperc = (y / imgHeight) * 100
 
-    if (x > 0.01 * imgWidth)
-      xperc += 0.15 * xperc
+    const ox = loupeSize / zoomedWidth
+    const oy = loupeSize / zoomedHeight
 
-    if (y >= 0.01 * imgHeight)
-      yperc += 0.15 * yperc
+    xperc = 50 + (xperc - 50) * (1 + ox)
+    yperc = 50 + (yperc - 50) * (1 + oy)
 
     magnifierEl.style.backgroundSize = `${zoomedWidth}px ${zoomedHeight}px`
-    magnifierEl.style.backgroundPositionX = `${xperc - 9}%`
-    magnifierEl.style.backgroundPositionY = `${yperc - 9}%`
-    magnifierEl.style.left = `${x - 50}px`
-    magnifierEl.style.top = `${y - 50}px`
+    magnifierEl.style.backgroundPositionX = `${xperc}%`
+    magnifierEl.style.backgroundPositionY = `${yperc}%`
+    magnifierEl.style.left = `${e.pageX - containerRect.left - loupeSize}px`
+    magnifierEl.style.top = `${e.pageY - containerRect.top - loupeSize}px`
     magnifierEl.style.zIndex = '9999'
   }
 
@@ -128,6 +129,7 @@ export function useImageGallery() {
     initSwipe,
     currentIndex,
     isFirstImg,
-    isLastImg
+    isLastImg,
+    active
   }
 }

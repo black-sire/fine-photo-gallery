@@ -2,19 +2,20 @@
 export default defineNuxtConfig({
   compatibilityDate: '2024-07-30',
   future: { compatibilityVersion: 4 },
+  css: ['~/assets/css/main.css'],
   modules: [
-    '@nuxthub/core',
     '@nuxt/fonts',
     '@nuxt/ui',
     '@nuxt/eslint',
     '@vueuse/nuxt',
-    'nuxt-auth-utils'
+    'nuxt-auth-utils',
+    '@pinia/nuxt'
   ],
-  hub: {
-    blob: true
-  },
   experimental: {
     viewTransition: true
+  },
+  pinia: {
+    storesDirs: ['./store/**']
   },
   devtools: { enabled: true },
   eslint: {

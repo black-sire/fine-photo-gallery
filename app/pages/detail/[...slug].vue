@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="spa-page">
     <ImageDetail />
   </div>
 </template>

@@ -1,7 +1,9 @@
-export default eventHandler(async () => {
-  const { blobs } = await hubBlob().list({
-    limit: 1000
-  })
+import { getCatalog } from '../../util/catalog'
+import type { GalImage } from '~~/types'
 
-  return blobs
+export default eventHandler(async (event) => {
+  return getCatalog().then((catalog) => {
+    const { albumId } = event.context.params || {}
+    return albumId ? catalog.filter((image: GalImage) => image.albumId === albumId) : catalog
+  })
 })

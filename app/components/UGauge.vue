@@ -15,6 +15,10 @@ const props = defineProps({
   title: {
     type: String,
     default: ''
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -24,17 +28,28 @@ const value = useVModel(props, 'modelValue', emit)
 </script>
 
 <template>
-  <div class="flex justify-between items-center relative">
-    <span class="text-gray-400 w-40">
+  <div
+    class="flex justify-between items-center relative"
+    :class="{ 'pointer-events-none': disabled }"
+    :style="{ color: disabled ? 'var(--light-low-cnst-color)' : 'var(--light-hi-cnst-color)' }"
+  >
+    <span
+      class="w-40 transition-colors duration-200"
+    >
       {{ title }}
     </span>
 
-    <URange
+    <HorzSlider
       v-model="value"
       :min="min"
       :max="max"
+      :disabled="disabled"
+      :width="190"
     />
 
-    <span class="text-center text-medium text-white w-16 px-2"> {{ Math.round(modelValue) }} </span>
+    <span
+      class="text-center text-medium w-16 px-2 transition-colors duration-200"
+      :style="{ color: disabled ? 'var(--light-low-cnst-color)': 'var(--light-hi-cnst-color)', minWidth: '50px' }"
+    > {{ Math.round(modelValue*100)/100 }} </span>
   </div>
 </template>

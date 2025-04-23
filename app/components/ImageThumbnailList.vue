@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { BlobObject } from '@nuxthub/core'
+import type { GalImage } from '~~/types'
 
 const thumbnails = ref<HTMLUListElement>()
 const x = ref<number>(0)
@@ -10,7 +10,7 @@ const { width } = useWindowSize()
 
 async function moveThumbnail(slug: string) {
   // get width of current image
-  const currentMovie = images.value!.filter((image: BlobObject) => image.pathname.split('.')[0] === slug)
+  const currentMovie = images.value!.filter((image: GalImage) => image.id === slug)
   const index = images.value!.indexOf(currentMovie[0]!) as number
   const imgToMove = ref<HTMLElement | undefined>(thumbnails.value?.children[index] as HTMLElement | undefined)
   const imageWidth: number = imgToMove.value!.offsetWidth
@@ -22,17 +22,15 @@ async function moveThumbnail(slug: string) {
 // move thumbnail on mounted (if not gallery page)
 onMounted(async () => {
   await nextTick()
-
   if (router.currentRoute.value.fullPath !== '/')
-    moveThumbnail(router.currentRoute.value.params.slug![0]!)
+    moveThumbnail(router.currentRoute.value.params.slug!.join('/'))
 })
 
 // move thumbnail after route changes
 router.afterEach(async (to, _) => {
   await nextTick()
-
   if (router.currentRoute.value.fullPath !== '/')
-    moveThumbnail(to.params.slug![0]!)
+    moveThumbnail(to.params.slug!.join('/'))
 })
 </script>
 
@@ -41,7 +39,7 @@ router.afterEach(async (to, _) => {
     <ul
       v-if="images && images.length"
       ref="thumbnails"
-      class="fixed top-2 left-0 right-0 mr-8 whitespace-nowrap overflow-x-scroll"
+      class="fixed top-2 left-0 right-0 whitespace-nowrap overflow-x-scroll"
     >
       <ImageThumbnail
         v-for="(thumbnail, index) in images"

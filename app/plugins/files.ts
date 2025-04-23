@@ -1,16 +1,55 @@
-import type { FilePlugin } from '../../types'
+import { createError } from 'h3'
+import type { FilePlugin, GalImage } from '../../types'
 
 export default defineNuxtPlugin(() => {
   const images = ref()
   const router = useRouter()
   const toast = useToast()
-  // https://hub.nuxt.com/docs/storage/blob#useupload
-  const upload = useUpload('/api/images/upload', { multiple: false })
 
-  async function getImages() {
-    const { data: files } = await useFetch('/api/images')
+  const useUpload = (apiBase: string, options = {}) => {
+    const { formKey = 'files', multiple = true, method = 'POST', ...fetchOptions }: { formKey?: string, multiple?: boolean, method?: string, [key: string]: unknown } = options || {}
+    const upload = async (data: File | FileList | File[]) => {
+      let files: File[]
+      if (typeof FileList !== 'undefined' && data instanceof FileList) {
+        files = Array.from(data)
+      }
+      else if (data instanceof File) {
+        files = [data]
+      }
+      else {
+        files = Array.isArray(data) ? data : []
+      }
+      if (!files || !files.length) {
+        throw createError({ statusCode: 400, message: 'Missing files' })
+      }
+      const formData = new FormData()
+      if (multiple) {
+        for (const file of files) {
+          formData.append(formKey, file)
+        }
+      }
+      else {
+        formData.append(formKey, files[0] as Blob)
+      }
+      return $fetch(apiBase, {
+        ...fetchOptions,
+        method: method as 'POST' | 'GET' | 'HEAD' | 'PATCH' | 'PUT' | 'DELETE' | 'CONNECT' | 'OPTIONS' | 'TRACE',
+        body: formData
+      }).then(result => multiple === false || data instanceof File ? (result as unknown[])[0] : result)
+    }
+    return upload
+  }
+
+  const upload = useUpload('/api/images/upload', { multiple: false, timeout: 120000 })
+
+  async function getImages(albumId: string = 'common') {
+    const { data: files } = await useFetch('/api/images', { params: { albumId } })
 
     images.value = files.value
+  }
+
+  async function updateImage(id: string, image: GalImage) {
+    await $fetch(`/api/images/${id}`, { method: 'POST', body: image })
   }
 
   async function uploadImage(image: File, filter: boolean = false) {
@@ -39,7 +78,8 @@ export default defineNuxtPlugin(() => {
         getImages,
         images,
         uploadImage,
-        deleteImage
+        deleteImage,
+        updateImage
       } as FilePlugin
     }
   }

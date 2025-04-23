@@ -1,15 +1,16 @@
+import { uploadImages } from '~~/server/util/catalog'
+
 export default eventHandler(async (event) => {
   await requireUserSession(event)
-
-  // https://hub.nuxt.com/docs/storage/blob#handleupload
-  return hubBlob().handleUpload(event, {
-    multiple: false,
-    put: {
-      addRandomSuffix: true
-    },
-    ensure: {
-      maxSize: '8MB',
-      types: ['image/jpeg', 'image/png', 'image/gif', 'image/heic', 'image/webp']
-    }
-  })
+  const multiple = false
+  const form = await readFormData(event)
+  const files: File[] = form.getAll('files') as File[]
+  const albumId = form.get('albumId')?.toString() || 'common'
+  if (!files) {
+    throw createError({ statusCode: 400, message: 'Missing files' })
+  }
+  if (!multiple && files.length > 1) {
+    throw createError({ statusCode: 400, message: 'Multiple files are not allowed' })
+  }
+  return await uploadImages(files, albumId)
 })
