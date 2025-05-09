@@ -82,6 +82,6 @@ const store = useStore()
 
 <style scoped>
 .menu-maximized {
-  width: 400px;
+  width: 300px;
 }
 </style>

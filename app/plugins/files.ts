@@ -2,7 +2,7 @@ import { createError } from 'h3'
 import type { FilePlugin, GalImage } from '../../types'
 
 export default defineNuxtPlugin(() => {
-  const images = ref()
+  const albums = ref()
   const router = useRouter()
   const toast = useToast()
 
@@ -42,11 +42,12 @@ export default defineNuxtPlugin(() => {
 
   const upload = useUpload('/api/images/upload', { multiple: false, timeout: 120000 })
 
-  async function getImages(albumId: string = 'common') {
-    const { data: files } = await useFetch('/api/images', { params: { albumId } })
-
-    images.value = files.value
+  async function getAlbums() {
+    const { data } = await useFetch('/api/albums')
+    albums.value = data.value
   }
+
+  const getImages = (albumId: string) => albums.value?.filter((image: unknown) => (image as GalImage).albumId === albumId)
 
   async function updateImage(id: string, image: GalImage) {
     await $fetch(`/api/images/${id}`, { method: 'POST', body: image })
@@ -59,7 +60,7 @@ export default defineNuxtPlugin(() => {
       description: err.data?.message || err.message
     }))
 
-    getImages()
+    getAlbums()
 
     if (filter) {
       router.push('/')
@@ -69,14 +70,15 @@ export default defineNuxtPlugin(() => {
   async function deleteImage(pathname: string) {
     await $fetch(`/api/images/${pathname}`, { method: 'DELETE' })
 
-    getImages()
+    getAlbums()
   }
 
   return {
     provide: {
       file: {
+        getAlbums,
+        albums,
         getImages,
-        images,
         uploadImage,
         deleteImage,
         updateImage

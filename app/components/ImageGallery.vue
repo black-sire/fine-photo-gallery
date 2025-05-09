@@ -232,8 +232,11 @@ onMounted(async () => {
       li{
         padding-top: 4em;
         padding-bottom: 4em;
-        padding-left: 0.5em;
-        padding-right: 0.5em;
+        padding-left: 0;
+        padding-right: 0;
+        min-width: min(calc(var(--image-max-width) + var(--image-h-pad)), 100vw);
+        max-width: 100%;
+        margin: 0;
       }
     }
   }

@@ -16,7 +16,7 @@ const sepia = ref(0)
 
 const filterUpdated = ref(false)
 
-const { images, updateImage } = useFile()
+const { getImages, updateImage } = useFile()
 const { loggedIn } = useUserSession()
 
 const isSmallScreen = useMediaQuery('(max-width: 1024px)')
@@ -269,7 +269,7 @@ const imageStyle = computed(() => ({
     </div>
 
     <UtilWindow
-      class="absolute z-50 top-[60px] w-[350px]"
+      class="absolute z-50 top-[16px] w-[350px]"
       :class="store.maximizedInfo ? 'translate-x-0 left-8' : '-translate-x-full left-0'"
       @close="store.toggleMaximizedInfo()"
     >
@@ -327,7 +327,7 @@ const imageStyle = computed(() => ({
     </UtilWindow>
 
     <UtilWindow
-      class="absolute top-[60px]"
+      class="absolute top-[16px]"
       :class="store.showImageSettings ? 'translate-x-0 right-8' : 'translate-x-full right-0'"
       @close="store.toggleShowImageSettings()"
     >
@@ -570,7 +570,6 @@ const imageStyle = computed(() => ({
               </UTooltip>
               <!-- open filters -->
               <UTooltip
-                v-if="!isSmallScreen"
                 text="Show information"
                 :kbds="['i']"
               >

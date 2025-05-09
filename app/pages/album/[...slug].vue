@@ -1,5 +1,5 @@
 <template>
   <main class="spa-page">
-    <ImageGallery />
+    <ImageGallery :album-id="albumId" />
   </main>
 </template>

@@ -18,7 +18,7 @@ defineEmits(['resetFilter', 'close'])
       />
     </div>
     <div
-      class="p-5"
+      class="p-5 overflow-auto"
       style="box-shadow: 0 -20px 25px -20px rgba(var(--light-base-color-rgb), 0.7)"
     >
       <slot />
@@ -37,6 +37,7 @@ defineEmits(['resetFilter', 'close'])
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   border-radius: 6px;
+  max-height: calc(100% - 32px);
 
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, translate;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
@@ -45,6 +46,7 @@ defineEmits(['resetFilter', 'close'])
   .window-title {
     overflow: hidden;
     height: 50px;
+    min-height: 50px;
     box-shadow: 0 20px 30px -20px rgba(var(--light-low-cnst-color-rgb), 0.7);
 
     .window-title-text {

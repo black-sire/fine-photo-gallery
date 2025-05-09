@@ -47,8 +47,9 @@ export type GalImage = GalImageEntity & {
 } & GalImageInfo
 
 export interface FilePlugin {
-  getImages: () => Promise<void>
-  images: Ref<GalImage[]>
+  getAlbums: () => Promise<void>
+  albums: Ref<GalImage[][]>
+  getImages: (albumId: string) => Ref<GalImage[]>
   updateImage: (id: string, image: GalImageInfo) => Promise<void>
   uploadImage: (image: File, filter?: boolean) => Promise<void>
   deleteImage: (pathname: string) => Promise<void>

@@ -12,9 +12,11 @@ export function useImageGallery() {
 
   const file = nuxtApp.$file as FilePlugin
 
-  const currentIndex: ComputedRef<number> = computed(() => file.images.value!.findIndex((image: GalImage) => image.id === route.params.slug?.join('/')))
-  const isFirstImg: ComputedRef<boolean> = computed(() => file.images.value?.[0]?.id === route.params.slug?.join('/') || false)
-  const isLastImg: ComputedRef<boolean> = computed(() => file.images.value?.[file.images.value.length - 1]?.id === route.params.slug?.join('/') || false)
+  const images = file.getImages(route.params.slug?.join('/'))
+
+  const currentIndex: ComputedRef<number> = computed(() => images.value!.findIndex((image: GalImage) => image.id === route.params.slug?.join('/')))
+  const isFirstImg: ComputedRef<boolean> = computed(() => images.value?.[0]?.id === route.params.slug?.join('/') || false)
+  const isLastImg: ComputedRef<boolean> = computed(() => images.value?.[images.value.length - 1]?.id === route.params.slug?.join('/') || false)
 
   const initSwipe = (el: Ref<HTMLImageElement | undefined>) => {
     useSwipe(el, {
@@ -25,13 +27,13 @@ export function useImageGallery() {
           if (isLastImg.value)
             router.push('/')
           else
-            router.push(`/detail/${file.images.value![currentIndex.value + 1]?.id}`)
+            router.push(`/detail/${images.value![currentIndex.value + 1]?.id}`)
         }
         else {
           if (isFirstImg.value)
             router.push('/')
           else
-            router.push(`/detail/${file.images.value![currentIndex.value - 1]?.id}`)
+            router.push(`/detail/${images.value![currentIndex.value - 1]?.id}`)
         }
       }
     })
@@ -130,6 +132,8 @@ export function useImageGallery() {
     currentIndex,
     isFirstImg,
     isLastImg,
+    nextImage,
+    prevImage,
     active
   }
 }

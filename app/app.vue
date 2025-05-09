@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useStore } from './store'
 
-const { getImages } = useFile()
+const { getAlbums } = useFile()
 const store = useStore()
 
 useHead({
@@ -20,20 +20,20 @@ useHead({
   }]
 })
 
-const title = 'NuxtHub Image Gallery Starter'
-const description = 'A Nuxt template to build your full-stack image gallery application on the edge.'
+const title = 'Ivan Riabov\' gallery'
+const description = '.'
 
 useSeoMeta({
   title,
   ogTitle: title,
   description,
   ogDescription: description,
-  ogSiteName: 'NuxtHub image gallery template',
+  ogSiteName: 'Ivan Riabov\' gallery',
   ogImage: 'https://image-gallery.nuxt.dev/social-card.png',
   twitterCard: 'summary_large_image'
 })
 
-await getImages()
+await getAlbums()
 </script>
 
 <template>
