@@ -16,28 +16,16 @@ const sepia = ref(0)
 
 const filterUpdated = ref(false)
 
-const { getImages, updateImage } = useFile()
+const { updateImage } = useFile()
 const { loggedIn } = useUserSession()
 
 const isSmallScreen = useMediaQuery('(max-width: 1024px)')
-const { active, currentIndex, isFirstImg, isLastImg, initSwipe, magnifierImage } = useImageGallery()
+const { getImages, currentIndex, isFirstImg, isLastImg, initSwipe, magnifierImage, nextImage, prevImage, image, albumId } = useImageGallery()
 
-// const route = useRoute()
 const router = useRouter()
-
 const store = useStore()
 
-const image: ComputedRef<GalImage> = computed(() => {
-  return images.value![currentIndex.value]!
-})
-
-const imagePrev: ComputedRef<GalImage | undefined> = computed(() => {
-  return images.value![currentIndex.value - 1]
-})
-
-const imageNext: ComputedRef<GalImage | undefined> = computed(() => {
-  return images.value![currentIndex.value + 1]
-})
+const images = computed(() => getImages(albumId))
 
 onKeyStroke('Escape', () => {
   router.push('/')
@@ -48,7 +36,7 @@ onKeyStroke('ArrowLeft', () => {
     router.push('/')
   }
   else {
-    active.value = images.value[currentIndex.value - 1]?.id || ''
+    // active.value = images.value[currentIndex.value - 1]?.id || ''
     router.push(`/detail/${images.value[currentIndex.value - 1]?.id}`)
   }
 })
@@ -58,7 +46,7 @@ onKeyStroke('ArrowRight', () => {
     router.push('/')
   }
   else {
-    active.value = images.value[currentIndex.value + 1]?.id || ''
+    // active.value = images.value[currentIndex.value + 1]?.id || ''
     router.push(`/detail/${images.value[currentIndex.value + 1]?.id}`)
   }
 })
@@ -191,7 +179,7 @@ const imageCntStyle = computed(() => ({
 
 const imageStyle = computed(() => ({
   filter: `contrast(${contrast.value}%) saturate(${saturate.value}%) sepia(${sepia.value}%)`,
-  viewTransitionName: image.value.id
+  viewTransitionName: image.value?.id?.replace('/', '_')
 }))
 </script>
 
@@ -512,12 +500,12 @@ const imageStyle = computed(() => ({
           >
             <UButton
               variant="ghost"
-              :to="`/detail/${images![currentIndex - 1]?.id}`"
+              :to="`/detail/${prevImage?.id}`"
               size="lg"
               icon="i-heroicons-chevron-left"
               class="bottom-menu-button-tr"
               aria-label="Go to previous image"
-              @click="active = images![currentIndex - 1]?.id, console.log(active)"
+              @click="image.value = prevImage"
             />
           </UTooltip>
 
@@ -527,7 +515,7 @@ const imageStyle = computed(() => ({
             :kbds="['Esc']"
           >
             <UButton
-              to="/"
+              :to="`/album/${albumId}`"
               size="lg"
               icon="i-heroicons-rectangle-group-20-solid"
               variant="ghost"
@@ -550,7 +538,7 @@ const imageStyle = computed(() => ({
               >
                 <UButton
                   variant="ghost"
-                  to="/"
+                  :to="`/album/${albumId}`"
                   size="md"
                   aria-label="Back to gallery"
                   class="bottom-button"
@@ -564,7 +552,7 @@ const imageStyle = computed(() => ({
                       width="24"
                       height="24"
                       viewBox="0 0 512 512"
-                    ><path d="M276.148-12.002c-75.859.011-151.718-.003-227.577.032-4.617.052-9.263-.199-13.842.538C19.523-9.218 5.383-.309-2.99 12.603-9.278 22.111-12.431 33.617-11.988 45l.04 149.187c.558 17.047 9.734 33.548 23.901 43.041 9.641 6.57 21.417 9.88 33.066 9.433l234.017-.03c16.936-.403 33.418-9.306 43.054-23.238 6.86-9.741 10.357-21.763 9.901-33.661l-.046-149.36c-.596-16.97-9.717-33.388-23.804-42.869C298.8-8.866 287.456-12.256 276.15-12zm191.995 0c-21.935.037-43.871-.072-65.805.09-17.021.818-33.379 10.211-42.658 24.507-6.277 9.492-9.431 20.974-9.004 32.338l.046 149.368c.598 16.973 9.725 33.394 23.817 42.872 9.666 6.611 21.489 9.943 33.181 9.487l64.552-.08c17.129-.798 33.589-10.297 42.857-24.724 6.233-9.521 9.322-21.016 8.862-32.377l-.047-149.11c-.596-16.974-9.721-33.394-23.814-42.873-9.34-6.366-20.682-9.755-31.988-9.498zM105.504 265.33c-21.913.031-43.827-.065-65.738.088-16.984.782-33.318 10.111-42.636 24.331-6.382 9.57-9.572 21.183-9.122 32.667l.048 149.206c.593 17.03 9.779 33.505 23.946 42.971 9.648 6.562 21.43 9.859 33.079 9.399l64.538-.08c17.176-.807 33.68-10.359 42.93-24.856 6.147-9.456 9.214-20.839 8.775-32.101l-.047-149.261c-.601-17.112-9.879-33.658-24.164-43.099-9.263-6.215-20.455-9.511-31.61-9.265zm362.695.002c-78.448.013-156.896-.016-235.344.041-17.086.444-33.69 9.539-43.265 23.697-6.686 9.694-10.043 21.588-9.583 33.343l.048 149.212c.595 17.013 9.762 33.469 23.905 42.942 9.658 6.575 21.455 9.885 33.121 9.425l234.194-.035c17.177-.481 33.837-9.721 43.361-24.022 6.532-9.639 9.818-21.395 9.356-33.021l-.048-149.212c-.595-17.001-9.754-33.445-23.881-42.918a55 55 0 0 0-31.864-9.452z" /></svg>
+                    ><path d="M275.122 1.647c-71.996.01-143.991-.003-215.987.03-4.382.049-8.791-.189-13.137.511C31.566 4.289 18.146 12.744 10.2 24.999c-5.968 9.024-8.96 19.944-8.54 30.747l.038 141.589c.53 16.179 9.238 31.84 22.684 40.849 9.15 6.235 20.326 9.377 31.382 8.953l222.099-.029c16.074-.382 31.716-8.832 40.861-22.055 6.511-9.245 9.83-20.655 9.397-31.947l-.044-141.754c-.566-16.106-9.222-31.688-22.592-40.686-8.865-6.045-19.632-9.262-30.362-9.019zm182.217 0c-20.818.035-41.637-.068-62.454.085-16.154.776-31.679 9.691-40.486 23.259-5.957 9.009-8.951 19.906-8.545 30.691l.044 141.761c.568 16.109 9.23 31.693 22.604 40.689 9.174 6.274 20.395 9.437 31.491 9.004l61.265-.076c16.257-.757 31.878-9.773 40.674-23.465 5.916-9.036 8.847-19.946 8.411-30.728l-.045-141.516c-.566-16.11-9.226-31.693-22.601-40.69-8.864-6.042-19.629-9.258-30.359-9.014zM113.168 264.855c-20.797.029-41.595-.062-62.39.084-16.119.742-31.621 9.596-40.465 23.092-6.057 9.083-9.085 20.104-8.657 31.003l.046 141.607c.563 16.163 9.281 31.799 22.727 40.783 9.157 6.228 20.339 9.357 31.394 8.92l61.251-.076c16.301-.766 31.965-9.831 40.744-23.59 5.834-8.974 8.745-19.778 8.328-30.466l-.045-141.66c-.57-16.241-9.376-31.944-22.933-40.904-8.791-5.899-19.413-9.027-30-8.793zm344.224.002c-74.453.012-148.906-.015-223.359.039-16.216.421-31.974 9.053-41.062 22.49-6.345 9.2-9.532 20.489-9.095 31.645l.046 141.613c.565 16.147 9.265 31.765 22.688 40.755 9.166 6.24 20.362 9.382 31.434 8.945l222.267-.033c16.302-.457 32.114-9.226 41.153-22.799 6.199-9.148 9.318-20.305 8.88-31.339l-.046-141.613c-.565-16.135-9.257-31.742-22.665-40.732a52.199 52.199 0 0 0-30.241-8.971z" /></svg>
                   </div>
                 </UButton>
               </UTooltip>
@@ -669,12 +657,12 @@ const imageStyle = computed(() => ({
           >
             <UButton
               variant="ghost"
-              :to="`/detail/${images![currentIndex + 1]?.id}`"
+              :to="`/detail/${nextImage?.id}`"
               size="lg"
               icon="i-heroicons-chevron-right"
               aria-label="Go to next image"
               class="bottom-menu-button-tr"
-              @click="active = images![currentIndex + 1]?.id, console.log(active)"
+              @click="image.value = nextImage"
             />
           </UTooltip>
 
@@ -686,7 +674,7 @@ const imageStyle = computed(() => ({
           >
             <UButton
               variant="ghost"
-              to="/"
+              :to="`/album/${albumId}`"
               size="lg"
               icon="i-heroicons-rectangle-group-20-solid"
               class="bottom-menu-button-tr"
@@ -698,11 +686,11 @@ const imageStyle = computed(() => ({
 
       <div
         class="absolute"
-        :style="{ 'left': '0', 'top': 'calc(50% - 150px)', 'width': '300px', 'height': '300px', 'view-transition-name': imagePrev?.id }"
+        :style="{ 'left': '0', 'top': 'calc(50% - 150px)', 'width': '300px', 'height': '300px', 'view-transition-name': prevImage?.id?.replace('/', '_') }"
       />
       <div
         class="absolute"
-        :style="{ 'right': '0', 'top': 'calc(50% - 150px)', 'width': '300px', 'height': '300px', 'view-transition-name': imageNext?.id }"
+        :style="{ 'right': '0', 'top': 'calc(50% - 150px)', 'width': '300px', 'height': '300px', 'view-transition-name': nextImage?.id?.replace('/', '_') }"
       />
       <div
         class="group transition-all duration-200 flex items-center justify-center w-full h-full relative"

@@ -1,5 +1,5 @@
-import { getCatalog } from '../../util/catalog'
+import { getAlbumsList } from '../../util/catalog'
 
 export default eventHandler(async () => {
-  return getCatalog()
+  return getAlbumsList()
 })

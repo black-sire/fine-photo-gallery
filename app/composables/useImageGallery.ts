@@ -8,15 +8,23 @@ export function useImageGallery() {
   const imageToDownload = ref<HTMLImageElement>()
   const router = useRouter()
   const route = useRoute()
-  const active = useState()
 
   const file = nuxtApp.$file as FilePlugin
 
-  const images = file.getImages(route.params.slug?.join('/'))
+  let albumId = route.params.slug?.[0]
+  if (route.path.startsWith('/detail/')) {
+    const index = route.path.indexOf('/', 8)
+    albumId = route.path.substring(8, index)
+  }
 
-  const currentIndex: ComputedRef<number> = computed(() => images.value!.findIndex((image: GalImage) => image.id === route.params.slug?.join('/')))
-  const isFirstImg: ComputedRef<boolean> = computed(() => images.value?.[0]?.id === route.params.slug?.join('/') || false)
-  const isLastImg: ComputedRef<boolean> = computed(() => images.value?.[images.value.length - 1]?.id === route.params.slug?.join('/') || false)
+  const images = file.getImages(albumId)
+
+  const currentIndex: ComputedRef<number> = computed(() => images.findIndex((image: GalImage) => image.id === route.params.slug?.join('/')))
+  const isFirstImg: ComputedRef<boolean> = computed(() => images[0]?.id === route.params.slug?.join('/') || false)
+  const isLastImg: ComputedRef<boolean> = computed(() => images[images.length - 1]?.id === route.params.slug?.join('/') || false)
+  const nextImage = computed(() => images[currentIndex.value + 1])
+  const prevImage = computed(() => images[currentIndex.value - 1])
+  const image = computed(() => images[currentIndex.value])
 
   const initSwipe = (el: Ref<HTMLImageElement | undefined>) => {
     useSwipe(el, {
@@ -27,13 +35,13 @@ export function useImageGallery() {
           if (isLastImg.value)
             router.push('/')
           else
-            router.push(`/detail/${images.value![currentIndex.value + 1]?.id}`)
+            router.push(`/detail/${images[currentIndex.value + 1]?.id}`)
         }
         else {
           if (isFirstImg.value)
             router.push('/')
           else
-            router.push(`/detail/${images.value![currentIndex.value - 1]?.id}`)
+            router.push(`/detail/${images[currentIndex.value - 1]?.id}`)
         }
       }
     })
@@ -124,6 +132,7 @@ export function useImageGallery() {
   }
 
   return {
+    albumId,
     downloadImage,
     applyFilters,
     convertBase64ToFile,
@@ -134,6 +143,6 @@ export function useImageGallery() {
     isLastImg,
     nextImage,
     prevImage,
-    active
+    image
   }
 }

@@ -35,6 +35,13 @@ export type GalImageEntity = {
   pathname_thumb: string
 }
 
+export type GalAlbum = {
+  id: string
+  name: string
+  description?: string
+  images: GalImageEntity[]
+}
+
 export type GalImage = GalImageEntity & {
   contentType: string
   size: number
@@ -47,9 +54,11 @@ export type GalImage = GalImageEntity & {
 } & GalImageInfo
 
 export interface FilePlugin {
-  getAlbums: () => Promise<void>
-  albums: Ref<GalImage[][]>
-  getImages: (albumId: string) => Ref<GalImage[]>
+  catalogIsLoaded: Ref<boolean>
+  loadCatalog: () => Promise<void>
+  onCatalogLoad: (func: (albums: GalAlbum[], catalog: GalImage[]) => void) => void
+  getImages: (albumId: string) => GalImage[]
+  getAlbums: () => GalAlbum[]
   updateImage: (id: string, image: GalImageInfo) => Promise<void>
   uploadImage: (image: File, filter?: boolean) => Promise<void>
   deleteImage: (pathname: string) => Promise<void>

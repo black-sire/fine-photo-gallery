@@ -12,12 +12,11 @@ const uploadingImg = ref(false)
 const disconnect = ref(false)
 
 const toast = useToast()
-const { uploadImage, deleteImage, images } = useFile()
+const { uploadImage, deleteImage, catalogIsLoaded, getImages } = useFile()
 const { loggedIn, clear } = useUserSession()
 
 const store = useStore()
-const { active } = useImageGallery()
-const route = useRoute()
+const { active, albumId } = useImageGallery()
 
 const { isOverDropZone } = useDropZone(dropZoneRef, onDrop)
 
@@ -25,8 +24,7 @@ function openFilePicker() {
   fileInput.value?.click()
 }
 
-const albumId = computed(() => (route.params.slug as string[]).join('/') || 'common')
-
+const images = computed(() => getImages(albumId))
 const imageTargetSize = ref(300)
 const imageMaxSize = ref(400)
 
@@ -80,7 +78,7 @@ onMounted(async () => {
 
 <template>
   <section
-    v-if="images"
+    v-if="catalogIsLoaded"
     ref="dropZoneRef"
     class="relative h-screen gap-[22px] overflow-auto"
     @scroll="store.galeryScrollPos = ($event.target as HTMLElement).scrollTop"
@@ -146,7 +144,7 @@ onMounted(async () => {
               v-if="image"
               :src="`/images/${image.pathname_thumb}`"
               class="h-auto w-full rounded-md transition-all duration-200 will-change-[filter] object-contain"
-              :style="`view-transition-name: ${image.id};min-width: ${imageTargetSize*imageScale(image)}px;min-height: ${imageTargetSize*imageScale(image)/image.aspectRatio}px;`"
+              :style="`view-transition-name: ${image.id?.replace('/', '_')};min-width: ${imageTargetSize*imageScale(image)}px;min-height: ${imageTargetSize*imageScale(image)/image.aspectRatio}px;`"
             >
           </NuxtLink>
         </li>

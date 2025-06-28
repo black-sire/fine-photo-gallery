@@ -8,12 +8,16 @@ import type { GalImage, GalImageInfo } from '~~/types'
 
 const GALLERY_FOLDER = process.env.GALLERY_FOLDER || './data'
 const galinfo_file = path.join(GALLERY_FOLDER, 'gallery_info.json')
+const albums_file = path.join(GALLERY_FOLDER, 'albums_list.json')
 
 const CACHE_TTL = 24 * 3600000 // 24 hours
 const cache = {
   catalog: [] as GalImage[],
+  albums: [] as GalAlbum[],
   lastSync: 0,
-  lastAccess: 0
+  lastAccess: 0,
+  albumsLastSync: 0,
+  albumsLastAccess: 0
 }
 
 const addImageToCatalog = (img: GalImage) => {
@@ -63,6 +67,29 @@ const getCatalog = () => {
   })
 }
 
+const getAlbumsList = () => {
+  if ((Date.now() - cache.albumsLastSync) < CACHE_TTL) {
+    cache.albumsLastAccess = Date.now()
+    return Promise.resolve(cache.albums)
+  }
+  return new Promise<GalAlbum[]>((resolve, reject) => {
+    if (fs.existsSync(albums_file)) {
+      fs.readFile(albums_file, 'utf8', function (err, data) {
+        if (err) return reject(err)
+        const albums = JSON.parse(data) as GalAlbum[]
+        cache.albums = albums
+        cache.albumsLastSync = Date.now()
+        resolve(albums)
+      })
+    }
+    else {
+      cache.albums = []
+      cache.albumsLastSync = Date.now()
+      resolve([] as GalAlbum[])
+    }
+  })
+}
+
 const flushCatalog = () => {
   return new Promise<void>((resolve, reject) => {
     if (!fs.existsSync(GALLERY_FOLDER))
@@ -83,7 +110,7 @@ const uploadImages = async (files: File[], albumId: string) => {
     fs.mkdirSync(path.join(GALLERY_FOLDER, albumId), { recursive: true })
     for (const file of files) {
       const name = file.name
-      const id = `${albumId}-${name.split('.')[0]}`
+      const id = `${albumId}/${name.split('.')[0]}`
       if (catalog.some(i => i.id === id)) continue
 
       const pathname = `${albumId}/${name}`
@@ -190,4 +217,4 @@ const updateImageInfo = async (id: string, image: GalImageInfo) => {
   })
 }
 
-export { addImageToCatalog, getCatalog, flushCatalog, removeFromCatalog, uploadImages, updateImageInfo }
+export { addImageToCatalog, getCatalog, getAlbumsList, flushCatalog, removeFromCatalog, uploadImages, updateImageInfo }

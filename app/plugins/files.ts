@@ -1,11 +1,20 @@
 import { createError } from 'h3'
-import type { FilePlugin, GalImage } from '../../types'
+import type { FilePlugin, GalImage, GalAlbum, GalImageInfo } from '../../types'
 
 export default defineNuxtPlugin(() => {
-  const albums = ref()
+  const albums = ref(new Map<string, GalAlbum>())
+  const catalog = ref<GalImage[]>([])
+  const catalogIsLoaded = ref(false)
+
   const router = useRouter()
   const toast = useToast()
-
+  const onLoadCallbacks = ref<((albums: GalAlbum[], catalog: GalImage[]) => void)[]>([])
+  const onCatalogLoad = (func: (albums: GalAlbum[], catalog: GalImage[]) => void) => {
+    if (catalogIsLoaded.value) {
+      func(Array.from(albums.value.values()), catalog.value)
+    }
+    onLoadCallbacks.value.push(func)
+  }
   const useUpload = (apiBase: string, options = {}) => {
     const { formKey = 'files', multiple = true, method = 'POST', ...fetchOptions }: { formKey?: string, multiple?: boolean, method?: string, [key: string]: unknown } = options || {}
     const upload = async (data: File | FileList | File[]) => {
@@ -42,25 +51,43 @@ export default defineNuxtPlugin(() => {
 
   const upload = useUpload('/api/images/upload', { multiple: false, timeout: 120000 })
 
-  async function getAlbums() {
-    const { data } = await useFetch('/api/albums')
-    albums.value = data.value
+  async function loadCatalog() {
+    const [albums_data, catalog_data] = await Promise.all([useFetch('/api/albums'), useFetch('/api/images')])
+    catalog.value = catalog_data.data.value as GalImage[]
+    albums.value.clear()
+    albums_data.data.value?.forEach((album: GalAlbum) => {
+      albums.value.set(album.id, album)
+      album.images = catalog.value?.filter((image: unknown) => (image as GalImage).albumId === album.id) || []
+    })
+    catalogIsLoaded.value = true
+    onLoadCallbacks.value.forEach(callback => callback(Array.from(albums.value.values()), catalog.value))
   }
 
-  const getImages = (albumId: string) => albums.value?.filter((image: unknown) => (image as GalImage).albumId === albumId)
+  const getImages = (albumId: string) => {
+    if (!catalogIsLoaded.value)
+      return []
+    const images = albums.value.get(albumId)?.images || []
+    return images as GalImage[]
+  }
 
-  async function updateImage(id: string, image: GalImage) {
+  const getAlbums = () => {
+    if (!catalogIsLoaded.value)
+      return []
+    return Array.from(albums.value.values())
+  }
+
+  async function updateImage(id: string, image: GalImageInfo) {
     await $fetch(`/api/images/${id}`, { method: 'POST', body: image })
   }
 
   async function uploadImage(image: File, filter: boolean = false) {
     await upload(image).catch(err => toast.add({
-      color: 'red',
+      color: 'error',
       title: 'Failed to upload image',
       description: err.data?.message || err.message
     }))
 
-    getAlbums()
+    loadCatalog()
 
     if (filter) {
       router.push('/')
@@ -70,15 +97,19 @@ export default defineNuxtPlugin(() => {
   async function deleteImage(pathname: string) {
     await $fetch(`/api/images/${pathname}`, { method: 'DELETE' })
 
-    getAlbums()
+    loadCatalog()
   }
+
+  loadCatalog()
 
   return {
     provide: {
       file: {
-        getAlbums,
-        albums,
+        catalogIsLoaded,
+        loadCatalog,
+        onCatalogLoad,
         getImages,
+        getAlbums,
         uploadImage,
         deleteImage,
         updateImage

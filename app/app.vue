@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useStore } from './store'
 
-const { getAlbums } = useFile()
+const { catalogIsLoaded } = useFile()
 const store = useStore()
 
 useHead({
@@ -32,8 +32,6 @@ useSeoMeta({
   ogImage: 'https://image-gallery.nuxt.dev/social-card.png',
   twitterCard: 'summary_large_image'
 })
-
-await getAlbums()
 </script>
 
 <template>
@@ -42,7 +40,10 @@ await getAlbums()
     :class="{ 'flex flex-col md:block': $router.currentRoute.value.fullPath !== '/' }"
   >
     <UApp>
-      <NuxtPage />
+      <NuxtPage v-if="catalogIsLoaded" />
+      <div v-else>
+        <USkeleton />
+      </div>
     </UApp>
     <!--
     <ImageThumbnailList :class="$router.currentRoute.value.fullPath !== '/' ? 'opacity-100 z-[9999]' : 'opacity-0 z-[-1]'" />
@@ -63,6 +64,7 @@ await getAlbums()
   --ui-primary: var(--light-hi-cnst-color);
   --ui-bg: var(--light-base-color);
 
+  color: white;
   user-select: none;
   position: relative;
   height: 100%;
